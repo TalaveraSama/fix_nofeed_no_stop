@@ -1,5 +1,14 @@
 # fix_nofeed_no_stop
 
+> **IMPORTANTE (actualización tras revisar el dmesg real):** si además de este
+> mensaje **se te caen/desaparecen todos los adapters de la TBS**, entonces
+> `no feed to stop` es solo un **síntoma cosmético**, NO la causa. La causa está
+> en el entorno (VM VMware + PCI passthrough, SWIOTLB pequeño, límite de LLR del
+> STiD135). Lee **[DIAGNOSIS.md](DIAGNOSIS.md)** y **[mitigations/](mitigations/)**
+> primero. Este README cubre solo el silenciado del mensaje.
+
+---
+
 Fix / silenciado del flood en `dmesg`:
 
 ```
