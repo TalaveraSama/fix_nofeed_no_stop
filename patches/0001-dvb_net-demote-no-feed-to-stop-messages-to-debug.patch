@@ -1,0 +1,50 @@
+From: fix_nofeed_no_stop <maintainer@example.com>
+Date: Tue, 30 Sep 2026 00:00:00 +0000
+Subject: [PATCH] media: dvb-core: dvb_net: demote "no feed to stop" to debug
+
+The functions dvb_net_feed_stop() is called on every ndo_stop (interface
+down) and on every rx-mode / multicast change via wq_set_multicast_list().
+When the network interface has no IP feed actually running (secfeed / tsfeed
+== NULL), it logs at KERN_ERR:
+
+    dvb_net: dvb0_0: no feed to stop
+    dvb_net: dvb1_0: no ts feed to stop
+    ...
+
+On multi-tuner cards (e.g. TBS6909x + TBS6916) this creates dozens of
+interfaces (dvb0_0 .. dvb27_0). A network manager that periodically probes
+or reconfigures every interface then floods the kernel log with these
+lines. The condition is entirely benign: there was simply nothing to stop.
+
+Demote both messages from pr_err() to netdev_dbg() so they no longer spam
+the ring buffer, while remaining available via dynamic debug when needed.
+netdev_dbg() also prepends the interface name, so drop the manual "%s".
+
+Signed-off-by: fix_nofeed_no_stop <maintainer@example.com>
+---
+ drivers/media/dvb-core/dvb_net.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/dvb-core/dvb_net.c b/drivers/media/dvb-core/dvb_net.c
+--- a/drivers/media/dvb-core/dvb_net.c
++++ b/drivers/media/dvb-core/dvb_net.c
+@@ -1108,7 +1108,7 @@ static int dvb_net_feed_stop(struct net_device *dev)
+ 			priv->demux->release_section_feed(priv->demux, priv->secfeed);
+ 			priv->secfeed = NULL;
+ 		} else
+-			pr_err("%s: no feed to stop\n", dev->name);
++			netdev_dbg(dev, "no feed to stop\n");
+ 	} else if (priv->feedtype == DVB_NET_FEEDTYPE_ULE) {
+ 		if (priv->tsfeed) {
+ 			if (priv->tsfeed->is_filtering) {
+@@ -1120,7 +1120,7 @@ static int dvb_net_feed_stop(struct net_device *dev)
+ 			priv->tsfeed = NULL;
+ 		}
+ 		else
+-			pr_err("%s: no ts feed to stop\n", dev->name);
++			netdev_dbg(dev, "no ts feed to stop\n");
+ 	} else
+ 		ret = -EINVAL;
+ 	mutex_unlock(&priv->mutex);
+--
+2.40.0

@@ -1,0 +1,17 @@
+# /etc/systemd/network/00-dvb-ignore.network
+#
+# systemd-networkd equivalent of the NetworkManager workaround: tell
+# networkd to leave the DVB pseudo-interfaces (dvb0_0 .. dvbN_0) alone so
+# it does not toggle their rx/multicast state and trigger the
+#     dvb_net: dvbX_0: no feed to stop
+# flood in dmesg.
+#
+# Install:
+#   sudo cp 00-dvb-ignore.network /etc/systemd/network/
+#   sudo systemctl restart systemd-networkd
+
+[Match]
+Name=dvb*
+
+[Link]
+Unmanaged=yes
